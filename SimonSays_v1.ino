@@ -1,5 +1,8 @@
 #define MAX_SEQUENCE 255
 
+// For each buttle, there must be an input AND an output pin!
+#define MAX_BOTTLES 4
+
 String gameMode = "reaction";
 int input[] = {6,13,3,12};
 int output[] = {9,11,7,8};
@@ -11,7 +14,7 @@ int points = 0;
 
 void setup() {
  Serial.begin(9600);
- for (int i = 0; i < 4; i++) {
+ for (int i = 0; i < MAX_BOTTLES; i++) {
     pinMode(output[i], OUTPUT);      
     pinMode(input[i], INPUT);     
   }
@@ -28,7 +31,7 @@ void loop(){
 }
 
 void reactionLoop(){
- long randomLed = random(4);
+ long randomLed = random(MAX_BOTTLES);
  digitalWrite(output[randomLed], HIGH);
 // delay(maxReactionTime);
  Serial.println(maxReactionTime);
@@ -62,7 +65,7 @@ void generateNextSequenceStep(){
     if(sequenceLength >= MAX_SEQUENCE){
       return;
     }
-    long nextSequenceNumber = random(4);
+    long nextSequenceNumber = random(MAX_BOTTLES);
     Serial.print("Next expected number: ");
     Serial.println(nextSequenceNumber);
     sequence[sequenceLength] = nextSequenceNumber;
@@ -93,7 +96,7 @@ int verifyNextUserInput(int expectedBottle, int maxReactionTime){
     if(millis()-startTime > timeout){
       return 0;
     }
-    for(int i = 0; i < 4; i++){
+    for(int i = 0; i < MAX_BOTTLES; i++){
       int state = digitalRead(input[i]);
       if(state == HIGH){
         Serial.print(i);
@@ -122,8 +125,8 @@ void resetSequence(){
   sequenceLength = 0;
 }
 
-void resetLeds(){
-  for(int i; i < 4; i++){
+void resetLeds() {
+  for(int i; i < MAX_BOTTLES i++) {
     digitalWrite(output[i], LOW);
   }
   delay(100);
