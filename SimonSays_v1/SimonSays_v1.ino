@@ -3,14 +3,22 @@
 // For each buttle, there must be an input AND an output pin!
 #define MAX_BOTTLES 4
 
-String gameMode = "reaction";
-int input[] = {6,13,3,12};
-int output[] = {9,11,7,8};
+String gameMode = "simon";
+int input[] = {A5,A4,A3,A2};
+int output[] = {3,5,6,9};
+int keksPin = 13;
+
 int sequence[MAX_SEQUENCE] = {0};
+int highscores[MAX_SEQUENCE] = {0};
 int sequenceLength = 0;
 int buttonState = 0;
 int maxReactionTime = 1000;
 int points = 0;
+
+int treshold = 25;
+
+int inputState[MAX_BOTTLES] = {LOW};
+int outputState[MAX_BOTTLES] = {LOW};
 
 void setup() {
  Serial.begin(9600);
@@ -18,9 +26,15 @@ void setup() {
     pinMode(output[i], OUTPUT);      
     pinMode(input[i], INPUT);     
   }
+  
+  pinMode(keksPin, OUTPUT);
+  
+  digitalWrite(keksPin, HIGH);
 }
 
 void loop() {  
+  // blinkAction.check();
+  
   Serial.println("New round ....");
   if(gameMode == "simon") {
     simonLoop();
@@ -42,7 +56,9 @@ void reactionLoop() {
     resetLeds();
   } else {
     Serial.println("Error! Resetting sequence ...");
+    resetLeds();
     blinkLoss();
+    storeHighscore(points);
     resetReactionLoop();
   }
 }
@@ -53,10 +69,13 @@ void simonLoop() {
   int success = verifyUserInput();
   if(success == 1) {
     Serial.println("Good.");
+    points++;
     blinkWin();
   } else {
     Serial.println("Error! Resetting sequence ...");
     blinkLoss();
+    storeHighscore(points);
+    resetSequence();
   }
   delay(2000);
 }
@@ -91,14 +110,13 @@ int verifyNextUserInput(int expectedBottle, int maxReactionTime) {
   Serial.println(expectedBottle);
   Serial.flush();
   unsigned long startTime = millis();
-  int timeout = maxReactionTime;
   while(1) {
-    if(millis()-startTime > timeout) {
+    if(millis()-startTime > maxReactionTime) {
       return 0;
     }
     for(int i = 0; i < MAX_BOTTLES; i++) {
-      int state = digitalRead(input[i]);
-      if(state == HIGH) {
+      inputState[i] = analogRead(input[i]) > treshold ? HIGH : LOW;
+      if (inputState[i] == HIGH){
         Serial.print(i);
         Serial.println(" was pressed!");
         if (i == expectedBottle) {
@@ -123,6 +141,7 @@ void displaySequence() {
 
 void resetSequence() {
   sequenceLength = 0;
+  points = 0;
 }
 
 void resetLeds() {
@@ -134,18 +153,34 @@ void resetLeds() {
 
 void resetReactionLoop() {
   maxReactionTime = 1000;
-  resetLeds();
   Serial.println("YOUR POINTS:");
   Serial.println(points);
   points = 0;
 }
 
+void storeHighscore(int highscore){
+  int new_highscore = highscore;
+  
+  for(int i = 0; i < MAX_SEQUENCE; i++){
+    int tempscore = highscores[i];
+    if(highscore > tempscore){
+      highscores[i] = highscore;
+      tempscore = highscore;
+    }
+    Serial.println(highscores[i]);
+  }
+  if(new_highscore >= highscores[0]){
+        Serial.println("NEW HIGHSCORE : " + new_highscore);
+    keksOut();
+  }
+}
+
 void blinkWin() {
   for(int i = 0; i < 2; i++) {
-    digitalWrite(output[2], HIGH);
+    digitalWrite(output[1], HIGH);
     digitalWrite(output[3], HIGH);
     delay(500);
-    digitalWrite(output[2], LOW);
+    digitalWrite(output[1], LOW);
     digitalWrite(output[3], LOW);
     delay(500);
   }
@@ -154,10 +189,29 @@ void blinkWin() {
 void blinkLoss() {
   for(int i = 0; i < 2; i++) {
     digitalWrite(output[0], HIGH);
-    digitalWrite(output[1], HIGH);
+    digitalWrite(output[2], HIGH);
     delay(500);
     digitalWrite(output[0], LOW);
-    digitalWrite(output[1], LOW);
+    digitalWrite(output[2], LOW);
     delay(500);
   }
 }
+
+void keksOut(){
+  digitalWrite(output[0], HIGH);
+  digitalWrite(output[1], HIGH);
+  digitalWrite(output[2], HIGH);
+  digitalWrite(output[3], HIGH);
+  
+  digitalWrite(keksPin, LOW);
+  
+  delay(500);
+  digitalWrite(output[0], LOW);
+  digitalWrite(output[1], LOW);
+  digitalWrite(output[2], LOW);
+  digitalWrite(output[3], LOW);
+  
+  digitalWrite(keksPin, HIGH);
+}
+  
+  
