@@ -1,23 +1,50 @@
 #define MAX_SEQUENCE 255
 
+String gameMode = "reaction";
 int input[] = {6,13,3,12};
 int output[] = {9,11,7,8};
 int sequence[MAX_SEQUENCE] = {0};
 int sequenceLength = 0;
 int buttonState = 0;
+int maxReactionTime = 1000;
+int points = 0;
 
 void setup() {
  Serial.begin(9600);
-  // initialize the LED pin as an output:
-  for (int i = 0; i < 4; i++) {
+ for (int i = 0; i < 4; i++) {
     pinMode(output[i], OUTPUT);      
     pinMode(input[i], INPUT);     
-
   }
 }
 
 void loop(){  
   Serial.println("New round ....");
+  if(gameMode == "simon"){
+    simonLoop();
+  }
+  if(gameMode == "reaction"){
+    reactionLoop();
+  }
+}
+
+void reactionLoop(){
+ long randomLed = random(4);
+ digitalWrite(output[randomLed], HIGH);
+// delay(maxReactionTime);
+ Serial.println(maxReactionTime);
+ maxReactionTime = maxReactionTime-10;
+ int success = verifyNextUserInput(randomLed, maxReactionTime);
+ if(success == 1){
+    points++;
+    resetLeds();
+  }else{
+    Serial.println("Error! Resetting sequence ...");
+    blinkLoss();
+    resetReactionLoop();
+  }
+}
+
+void simonLoop(){
   generateNextSequenceStep();
   displaySequence();
   int success = verifyUserInput();
@@ -27,7 +54,6 @@ void loop(){
   }else{
     Serial.println("Error! Resetting sequence ...");
     blinkLoss();
-    resetSequence();
   }
   delay(2000);
 }
@@ -46,24 +72,23 @@ void generateNextSequenceStep(){
 int verifyUserInput(){
   for(int i = 0; i < sequenceLength; i++){
     int expectedBottle = sequence[i];
-    if(verifyNextUserInput(expectedBottle) == 0){
+    if(verifyNextUserInput(expectedBottle, 5000) == 0){
       return 0;
     }
-    
     digitalWrite(output[expectedBottle], HIGH);
     delay(200);
-    digit alWrite(output[expectedBottle], LOW);
+    digitalWrite(output[expectedBottle], LOW);
   }
   return 1;
 }
 
-int verifyNextUserInput(int expectedBottle){
+int verifyNextUserInput(int expectedBottle, int maxReactionTime){
   Serial.println("Waiting for next user input ...");
   Serial.print("Expecting: ");
   Serial.println(expectedBottle);
   Serial.flush();
   unsigned long startTime = millis();
-  int timeout = 5000;
+  int timeout = maxReactionTime;
   while(1){
     if(millis()-startTime > timeout){
       return 0;
@@ -97,38 +122,39 @@ void resetSequence(){
   sequenceLength = 0;
 }
 
+void resetLeds(){
+  for(int i; i < 4; i++){
+    digitalWrite(output[i], LOW);
+  }
+  delay(100);
+}
+
+void resetReactionLoop(){
+  maxReactionTime = 1000;
+  resetLeds();
+  Serial.println("YOUR POINTS:");
+  Serial.println(points);
+  points = 0;
+}
+
 void blinkWin(){
-  digitalWrite(output[2], HIGH);
-  digitalWrite(output[3], HIGH);
-  delay(500);
-  
-  digitalWrite(output[2], LOW);
-  digitalWrite(output[3], LOW);
-  delay(500);
-  
-  digitalWrite(output[2], HIGH);
-  digitalWrite(output[3], HIGH);
-  delay(500);
-  
-  digitalWrite(output[2], LOW);
-  digitalWrite(output[3], LOW);
-  delay(500);
+  for(int i = 0; i < 2; i++){
+    digitalWrite(output[2], HIGH);
+    digitalWrite(output[3], HIGH);
+    delay(500);
+    digitalWrite(output[2], LOW);
+    digitalWrite(output[3], LOW);
+    delay(500);
+  }
 }
 
 void blinkLoss(){
+  for(int i = 0; i < 2; i++){
   digitalWrite(output[0], HIGH);
   digitalWrite(output[1], HIGH);
   delay(500);
-  
   digitalWrite(output[0], LOW);
   digitalWrite(output[1], LOW);
   delay(500);
-  
-  digitalWrite(output[0], HIGH);
-  digitalWrite(output[1], HIGH);
-  delay(500);
-  
-  digitalWrite(output[0], LOW);
-  digitalWrite(output[1], LOW);
-  delay(500);
+  }
 }
