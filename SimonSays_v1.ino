@@ -126,7 +126,7 @@ void resetSequence() {
 }
 
 void resetLeds() {
-  for(int i; i < MAX_BOTTLES i++) {
+  for(int i; i < MAX_BOTTLES; i++) {
     digitalWrite(output[i], LOW);
   }
   delay(100);
